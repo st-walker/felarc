@@ -430,11 +430,13 @@ dev = [
     { name = "ipympl" },
     { name = "isort" },
     { name = "jupyter" },
+    { name = "pyflakes" },
     { name = "pytest" },
     { name = "ruff" },
 ]
 lint = [
     { name = "isort" },
+    { name = "pyflakes" },
     { name = "ruff" },
 ]
 notebook = [
@@ -457,11 +459,13 @@ dev = [
     { name = "ipympl", specifier = ">=0.9.7" },
     { name = "isort", specifier = ">=6.0.1" },
     { name = "jupyter", specifier = ">=1.1.1" },
+    { name = "pyflakes", specifier = ">=3.4.0" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "ruff", specifier = ">=0.12.7" },
 ]
 lint = [
     { name = "isort", specifier = ">=6.0.1" },
+    { name = "pyflakes", specifier = ">=3.4.0" },
     { name = "ruff", specifier = ">=0.12.7" },
 ]
 notebook = [
@@ -1586,6 +1590,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/1d/b2/31537cf4b1ca988837256c910a668b553fceb8f069bedc4b1c826024b52c/pycparser-2.22.tar.gz", hash = "sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6", size = 172736 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/13/a3/a812df4e2dd5696d1f351d58b8fe16a405b234ad2886a0dab9183fb78109/pycparser-2.22-py3-none-any.whl", hash = "sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc", size = 117552 },
+]
+
+[[package]]
+name = "pyflakes"
+version = "3.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/dc/fd034dc20b4b264b3d015808458391acbf9df40b1e54750ef175d39180b1/pyflakes-3.4.0.tar.gz", hash = "sha256:b24f96fafb7d2ab0ec5075b7350b3d2d2218eab42003821c06344973d3ea2f58", size = 64669 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c2/2f/81d580a0fb83baeb066698975cb14a618bdbed7720678566f1b046a95fe8/pyflakes-3.4.0-py2.py3-none-any.whl", hash = "sha256:f742a7dbd0d9cb9ea41e9a24a918996e8170c799fa528688d40dd582c8265f4f", size = 63551 },
 ]
 
 [[package]]
