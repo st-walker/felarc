@@ -1,13 +1,12 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from copy import deepcopy
-
 
 import numpy as np
 from ocelot.cpbd.beam import Twiss
 from ocelot.cpbd.elements import Drift, Marker, Quadrupole, SBend
 from ocelot.cpbd.magnetic_lattice import MagneticLattice
-from ocelot.cpbd.match import match
+
+from felarc.matching import match_twiss
 
 
 @dataclass
@@ -61,7 +60,7 @@ def get_quad_strengths(arc_definition: ArcDefinition) -> ArcDefinition:
     for ele in mlat.sequence:
         if isinstance(ele, Quadrupole):
             quads.append(ele)
-    result.k1_outer, result.k1_inner = match(
+    result.k1_outer, result.k1_inner = match_twiss(
         mlat,
         verbose=False,
         max_iter=1_000_000,

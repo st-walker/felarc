@@ -7,6 +7,8 @@ from ocelot.cpbd.magnetic_lattice import MagneticLattice
 from ocelot.cpbd.match import match
 from ocelot.cpbd.optics import Twiss
 
+from felarc.matching import match_twiss
+
 
 @dataclass
 class ArcDefinition:
@@ -52,7 +54,7 @@ def get_quad_strengths(ad: ArcDefinition) -> ArcDefinition:
     quads = [ele for ele in mlat.sequence if isinstance(ele, Quadrupole)]
     quads[0].k1 = -1
     quads[1].k1 = 1
-    result = match(
+    result = match_twiss(
         mlat,
         verbose=False,
         max_iter=1_000_000,

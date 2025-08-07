@@ -3,10 +3,11 @@
 
 from copy import deepcopy
 
-from ocelot.cpbd.beam_params import radiation_integrals
 from ocelot.cpbd.beam import Twiss
-from ocelot.cpbd.elements import (Bend, Drift, OpticElement, Quadrupole, RBend,
+from ocelot.cpbd.beam_params import radiation_integrals
+from ocelot.cpbd.elements import (Bend, Drift, Quadrupole, RBend,
                                   SBend, Solenoid)
+from ocelot.cpbd.elements.optic_element import OpticElement
 from scipy.optimize import fmin, fmin_bfgs, fmin_cg
 
 
@@ -34,7 +35,7 @@ def weights_default(val):
     return 0.0001
 
 
-def match(lat,
+def match_twiss(lat,
           constr,
           vars,
           tw,
@@ -112,7 +113,6 @@ def match(lat,
         for i in range(len(vars)):
             if isinstance(vars[i], Drift):
                 if x[i] < 0:
-                    # print('negative length in match')
                     return weights('negative_length')
 
                 vars[i].l = x[i]
@@ -145,7 +145,8 @@ def match(lat,
                 tw_loc = lat.periodic_twiss(tw_loc)
                 tw0 = deepcopy(tw_loc)
                 if tw_loc is None:
-                    print("########")
+                    if verbose:
+                        print("########")
                     return weights('periodic')
 
         # save reference points where equality is asked
@@ -289,7 +290,8 @@ def match(lat,
             else:
                 x[i] = vars[i].k1
 
-    print("initial value: x = ", x)
+    if verbose:
+        print("initial value: x = ", x)
     if method == 'simplex':
         res = fmin(errf, x, xtol=tol, maxiter=max_iter, maxfun=max_iter)
     if method == 'cg':
