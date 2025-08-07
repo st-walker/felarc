@@ -2,7 +2,9 @@
 
 ## Development
 
-I use [uv](https://docs.astral.sh/uv/).
+I use [uv](https://docs.astral.sh/uv/) with
+[direnv](https://direnv.net) and the Python+uv direnv
+[layout](https://github.com/direnv/direnv/wiki/Python#uv).
 
 ```console
 $ git clone https://github.com/st-walker/felarc
