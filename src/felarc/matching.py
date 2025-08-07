@@ -1,6 +1,15 @@
 
 
 
+from copy import deepcopy
+
+from ocelot.cpbd.beam_params import radiation_integrals
+from ocelot.cpbd.beam import Twiss
+from ocelot.cpbd.elements import (Bend, Drift, OpticElement, Quadrupole, RBend,
+                                  SBend, Solenoid)
+from scipy.optimize import fmin, fmin_bfgs, fmin_cg
+
+
 def weights_default(val):
     if val == 'periodic':
         return 10000001.0
@@ -256,24 +265,24 @@ def match(lat,
 
     x = [0.0] * len(vars)
     for i in range(len(vars)):
-        if vars[i].__class__ == list:
-            if vars[i][0].__class__ == Twiss and vars[i][1].__class__ == str:
+        if isinstance(vars[i], list):
+            if isinstance(vars[i][0], Twiss) and isinstance(vars[i][1], str):
                 k = vars[i][1]
                 x[i] = getattr(tw, k)
                 # if k in ['beta_x', 'beta_y']:
                 #     x[i] = 10
                 # else:
                 #     x[i] = 0.0
-        if vars[i].__class__ == tuple:
+        if isinstance(vars[i], tuple):
             x[i] = vars[i][0].k1
-        if vars[i].__class__ == dict:
+        if isinstance(vars[i], dict):
             q = list(vars[i].keys())[0]
             x[i] = q.k1 / vars[i][q]
-        if vars[i].__class__ == Quadrupole:
+        if isinstance(vars[i], Quadrupole):
             x[i] = vars[i].k1
-        if vars[i].__class__ == Drift:
+        if isinstance(vars[i], Drift):
             x[i] = vars[i].l
-        if vars[i].__class__ in [RBend, SBend, Bend]:
+        if isinstance(vars[i], (RBend, SBend, Bend)):
             # TODO: need a way to vary 2 aattributes of a class
             if vary_bend_angle:
                 x[i] = vars[i].angle
@@ -292,8 +301,8 @@ def match(lat,
     # if initial twiss was varied set the twiss argument object to resulting value
 
     for i in range(len(vars)):
-        if vars[i].__class__ == list:
-            if vars[i][0].__class__ == Twiss and vars[i][1].__class__ == str:
+        if isinstance(vars[i], list):
+            if isinstance(vars[i][0], Twiss) and isinstance(vars[i][1], str):
                 k = vars[i][1]
                 setattr(tw, k, res[i])
 
