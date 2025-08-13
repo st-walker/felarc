@@ -12,8 +12,6 @@ from scipy.optimize import fmin, fmin_bfgs, fmin_cg
 
 
 def weights_default(val):
-    if val == 'periodic':
-        return 10000001.0
     if val == 'total_len':
         return 10000001.0
     if val in ['Dx', 'Dy']:
@@ -22,8 +20,6 @@ def weights_default(val):
         return 10000003.0
     if val == 'tau':
         return 10000004.0
-    if val == 'i5':
-        return 1.e14
     if val == 'negative_length':
         return 1.5e6
     if val in ['alpha_x', 'alpha_y']:
@@ -43,8 +39,6 @@ def match_twiss(lat,
           max_iter=1000,
           method='simplex',
           weights=weights_default,
-          vary_bend_angle=False,
-          min_i5=False,
           tol=1e-5):
     """
     Function to match twiss parameters. To find periodic solution for a lattice use MagneticLattice.periodic_twiss(tws)
@@ -94,8 +88,6 @@ def match_twiss(lat,
                         if val in ['mux', 'muy']: return 10000006.0
                         if val in ['beta_x', 'beta_y']: return 100007.0
                         return 0.0001
-    :param vary_bend_angle: False, allow to vary "angle" of the dipoles instead of the focusing strength "k1"
-    :param min_i5: minimization of the radiation integral I5. Can be useful for storage rings.
     :param tol: tolerance default 1e-5
     :return: result
     """
@@ -120,11 +112,6 @@ def match_twiss(lat,
                 vars[i].k1 = x[i]
             if isinstance(vars[i], Solenoid):
                 vars[i].k = x[i]
-            if isinstance(vars[i], (RBend, SBend, Bend)):
-                if vary_bend_angle:
-                    vars[i].angle = x[i]
-                else:
-                    vars[i].k1 = x[i]
             if isinstance(vars[i], list):
                 if isinstance(vars[i][0], Twiss) and isinstance(vars[i][1], str):
                     k = vars[i][1]
@@ -140,21 +127,10 @@ def match_twiss(lat,
                     q.k1 = vars[i][q] * x[i]
 
         err = 0.0
-        if "periodic" in constr.keys():
-            if constr["periodic"]:
-                tw_loc = lat.periodic_twiss(tw_loc)
-                tw0 = deepcopy(tw_loc)
-                if tw_loc is None:
-                    if verbose:
-                        print("########")
-                    return weights('periodic')
-
         # save reference points where equality is asked
 
         ref_hsh = {}  # penalties on two-point inequalities
         for e in constr.keys():
-            if e == 'periodic':
-                continue
             if e == 'total_len':
                 continue
             for k in constr[e].keys():
@@ -241,21 +217,6 @@ def match_twiss(lat,
             delta_err = delta_dict["weight"] * (delta_dict[elems[1]][1] - delta_dict[elems[0]][1] - delta_dict["val"])**2
             err = err + delta_err
 
-        if min_i5:
-            # evaluating integral parameters
-
-            I1, I2, I3, I4, I5 = radiation_integrals(lat, tw0, nsuperperiod=1)
-            err += I5 * weights('i5')
-
-            Je = 2 + I4 / I2
-            Jx = 1 - I4 / I2
-            Jy = 1
-
-            if Je < 0 or Jx < 0 or Jy < 0:
-                err = 100000.0
-
-        # c1, c2 = natural_chromaticity(lat, tw0)
-        # err += ( c1**2 + c2**2) * 1.e-6
 
         if verbose:
             print('iteration error:', err)
@@ -283,12 +244,6 @@ def match_twiss(lat,
             x[i] = vars[i].k1
         if isinstance(vars[i], Drift):
             x[i] = vars[i].l
-        if isinstance(vars[i], (RBend, SBend, Bend)):
-            # TODO: need a way to vary 2 aattributes of a class
-            if vary_bend_angle:
-                x[i] = vars[i].angle
-            else:
-                x[i] = vars[i].k1
 
     if verbose:
         print("initial value: x = ", x)
