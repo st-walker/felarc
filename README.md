@@ -52,6 +52,8 @@ Source: [Quasi-isochronous triple-bend achromat with periodic stable optics and 
 
 ## Miscellaneous
 
+   * [ ] Add plot for D / rho for the dipoles
    * [ ] Add STN10 beam file for 100pC and 250pC with utilities for loading and artificial matching.
    * [ ] TBA plot showing the depenence of the dipole angles on the required dispersions at the inner dipole.
    * [ ] Derive the isochronicity condition.
+

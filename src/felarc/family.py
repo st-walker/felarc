@@ -8,6 +8,8 @@ from ocelot.cpbd.magnetic_lattice import MagneticLattice
 
 from felarc.matching import match_twiss
 
+from .simple_tba import TBAMarkers
+
 
 @dataclass
 class ArcDefinition:
@@ -47,7 +49,7 @@ def get_quad_strengths(arc_definition: ArcDefinition) -> ArcDefinition:
     ad.k1_inner = 55
     ad.k1_outer = -55
 
-    mlat = make_arc_to_inner_dipole_start(arc_definition)
+    mlat, markers = make_arc(arc_definition)
     dx, dxp = get_isochronous_dispersions_at_middle_dipole_entrance(
         arc_definition.outer_angle,
         arc_definition.outer_length,
@@ -64,64 +66,71 @@ def get_quad_strengths(arc_definition: ArcDefinition) -> ArcDefinition:
         mlat,
         verbose=False,
         max_iter=1_000_000,
-        constr={mlat.sequence[-1]: {"Dx": dx, "Dxp": dxp}},
+        constr={markers.middle_dipole_start: {"Dx": dx, "Dxp": dxp}},
         vars=quads,
         tw=twiss0,
     )
     return result
 
-def make_arc_to_inner_dipole_start(ad: ArcDefinition) -> MagneticLattice:
-    sbend_outer = SBend(l=ad.outer_length, angle=ad.outer_angle)
-    d1 = Drift(l=ad.l1)
-    d2 = Drift(l=ad.l2)
-    d3 = Drift(l=ad.l3)
-    qlength = ad.quad_length
-    qf1 = Quadrupole(l=qlength, k1=ad.k1_outer)
-    qd1 = Quadrupole(l=qlength, k1=ad.k1_inner)
+# def make_arc_to_inner_dipole_start(ad: ArcDefinition) -> MagneticLattice:
+#     sbend_outer = SBend(l=ad.outer_length, angle=ad.outer_angle)
+#     d1 = Drift(l=ad.l1)
+#     d2 = Drift(l=ad.l2)
+#     d3 = Drift(l=ad.l3)
+#     qlength = ad.quad_length
+#     qf1 = Quadrupole(l=qlength, k1=ad.k1_outer)
+#     qd1 = Quadrupole(l=qlength, k1=ad.k1_inner)
 
-    middle_dipole_start = Marker()
+#     middle_dipole_start = Marker()
     
-    return MagneticLattice(
-        [
-            sbend_outer,
-            d1,
-            qf1,
-            d2,
-            qd1,
-            d3,
-            middle_dipole_start,
-        ]
-    )
+#     return MagneticLattice(
+#         [
+#             sbend_outer,
+#             d1,
+#             qf1,
+#             d2,
+#             qd1,
+#             d3,
+#             middle_dipole_start,
+#         ]
+#     )
 
 
 
-def make_arc(ad: ArcDefinition) -> MagneticLattice:
+def make_arc(ad: ArcDefinition) -> tuple[MagneticLattice, TBAMarkers]:
     d1 = Drift(l=ad.l1)
     d2 = Drift(l=ad.l2)
     d3 = Drift(l=ad.l3)
     qlength = ad.quad_length
-    qf1 = Quadrupole(l=qlength, k1=ad.k1_outer)
-    qd1 = Quadrupole(l=qlength, k1=ad.k1_inner)
+    qf1 = Quadrupole(l=qlength, k1=ad.k1_outer)  # type: ignore
+    qd1 = Quadrupole(l=qlength, k1=ad.k1_inner)  # type: ignore
 
     sbend_outer = SBend(l=ad.outer_length, angle=ad.outer_angle)
-    sbend_inner = SBend(l=ad.inner_length, angle=ad.inner_angle)
+    sbend_inner_half = SBend(l=ad.inner_length/2, angle=ad.inner_angle/2)
+
+    markers = TBAMarkers()
 
     return MagneticLattice(
         [
+            markers.start,
             sbend_outer,
             d1,
             qf1,
             d2,
             qd1,
             d3,
-            sbend_inner,
+            markers.middle_dipole_start,
+            sbend_inner_half,
+            markers.middle,
+            sbend_inner_half,
             d3,
             qd1,
             d2,
             qf1,
             d1,
             sbend_outer,
-        ]
-    )
+            markers.end
+        ]  # type: ignore
+    ), markers
 
     
