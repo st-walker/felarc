@@ -82,7 +82,7 @@ def get_quad_strengths(arc_definition: ArcDefinition) -> ArcDefinition:
 #     qd1 = Quadrupole(l=qlength, k1=ad.k1_inner)
 
 #     middle_dipole_start = Marker()
-    
+
 #     return MagneticLattice(
 #         [
 #             sbend_outer,
@@ -132,5 +132,3 @@ def make_arc(ad: ArcDefinition) -> tuple[MagneticLattice, TBAMarkers]:
             markers.end
         ]  # type: ignore
     ), markers
-
-    

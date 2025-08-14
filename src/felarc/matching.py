@@ -219,7 +219,7 @@ def match_twiss(lat,
 
 
         if verbose:
-            print('iteration error:', err)
+            print('iteration error:', x, err)
         return err
 
 
