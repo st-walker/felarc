@@ -68,7 +68,7 @@ def get_quad_strengths(arc_definition: ArcDefinition) -> ArcDefinition:
         max_iter=1_000_000,
         constr={markers.middle_dipole_start: {"Dx": dx, "Dxp": dxp}},
         vars=quads,
-        tw=twiss0,
+        twiss0=twiss0,
     )
     return result
 

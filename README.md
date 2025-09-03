@@ -24,6 +24,7 @@ $ source .venv/bin/activate
 Source: [High Energy Beam Optics](https://bib-pubdb1.desy.de/record/352895)
 
   * [ ] Refactor notebook functions to package.
+  * [ ] Introduce linear maps for solving equations to find best parameters.
   * [ ] Get reasonable Twiss parameters in the TBA based on similar value from the T20 design.
   * [ ] Track using STN beam with CSR and check result.
 
@@ -31,7 +32,7 @@ Source: [High Energy Beam Optics](https://bib-pubdb1.desy.de/record/352895)
 
 Source: [A New Family of Isochronous Arcs](https://accelconf.web.cern.ch/p95/ARTICLES/RPC/RPC12.PDF)
 
-  * [ ] Implement the basic version with optionally different inner dipole strength.
+  * [x] Implement the basic version with optionally different inner dipole strength.
   * [ ] Do the full parametristation.
   * [ ] Come up with some reasonable implementation.
   * [ ] Track with CSR.

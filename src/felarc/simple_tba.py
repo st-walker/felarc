@@ -73,19 +73,19 @@ def get_quad_strengths(ad: TBADefinition) -> TBADefinition:
         max_iter=1_000_000,
         constr={tba.markers.middle_dipole_start: {"Dx": dx, "Dxp": dxp}},
         vars=tba.components.quads,
-        tw=twiss0,
+        twiss0=twiss0,
     )
     return result # type: ignore
 
 def make_tba(ad: TBADefinition) -> TripleBendAchromat:
     sbend = SBend(l=ad.dipole_length, angle=ad.dipole_angle)
     sbend_half = SBend(l=sbend.l/2, angle=sbend.angle/2)
-    d1 = Drift(l=ad.l1)
-    d2 = Drift(l=ad.l2)
-    d3 = Drift(l=ad.l3)
+    d1 = Drift(l=ad.l1, eid="d1")
+    d2 = Drift(l=ad.l2, eid="d2")
+    d3 = Drift(l=ad.l3, eid="d3")
     qlength = ad.qlength
-    q1 = Quadrupole(l=qlength, k1=ad.k11)  # type: ignore
-    q2 = Quadrupole(l=qlength, k1=ad.k12)  # type: ignore
+    q1 = Quadrupole(l=qlength, k1=ad.k11, eid="q1")  # type: ignore
+    q2 = Quadrupole(l=qlength, k1=ad.k12, eid="q2")  # type: ignore
 
     markers = TBAMarkers()
 
@@ -127,3 +127,5 @@ def get_tba_dispersion_condition(dipole_length: float, dipole_angle: float) -> t
     # Is this also correct?
     dx = bending_radius * ((np.tan(dipole_angle / 2.0)**-1) * dxp + 1)
     return dx, dxp
+
+

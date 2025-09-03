@@ -8,6 +8,7 @@ dependencies = [
     "latdraw>=0.1.1a3",
     "matplotlib>=3.10.3",
     "ocelot-desy>=25.6.0",
+    "sympy>=1.14.0",
     "tabulate>=0.9.0",
 ]
 

@@ -5,8 +5,7 @@ from copy import deepcopy
 
 from ocelot.cpbd.beam import Twiss
 from ocelot.cpbd.beam_params import radiation_integrals
-from ocelot.cpbd.elements import (Bend, Drift, Quadrupole, RBend,
-                                  SBend, Solenoid)
+from ocelot.cpbd.elements import (Bend, Drift, Quadrupole, RBend, SBend, Solenoid)
 from ocelot.cpbd.elements.optic_element import OpticElement
 from scipy.optimize import fmin, fmin_bfgs, fmin_cg
 
@@ -34,7 +33,7 @@ def weights_default(val):
 def match_twiss(lat,
           constr,
           vars,
-          tw,
+          twiss0,
           verbose=True,
           max_iter=1000,
           method='simplex',
@@ -92,66 +91,77 @@ def match_twiss(lat,
     :return: result
     """
 
+    twiss0_copy = deepcopy(twiss0)
     # tw = deepcopy(tw0)
 
     def errf(x):
-
-        tw_loc = deepcopy(tw)
-        tw0 = deepcopy(tw)
-
+        twiss0 = deepcopy(twiss0_copy)
 
         # parameter to be varied is determined by variable class
 
+        # loop over "vars" (i.e. basically elements or Twiss instances that will be varied).
         for i in range(len(vars)):
+            # Set the length if this is a drift, return big weight if length is negative
             if isinstance(vars[i], Drift):
                 if x[i] < 0:
                     return weights('negative_length')
 
                 vars[i].l = x[i]
+            # Set k1 if it's a quad
             if isinstance(vars[i], Quadrupole):
                 vars[i].k1 = x[i]
-            if isinstance(vars[i], Solenoid):
-                vars[i].k = x[i]
+            # if list like [Twiss(), str()] where the string is the name of some
+            # attribute of the Twiss instance.  This allows us to vary the input twiss.
             if isinstance(vars[i], list):
                 if isinstance(vars[i][0], Twiss) and isinstance(vars[i][1], str):
                     k = vars[i][1]
-                    setattr(tw_loc, k, x[i])
+                    setattr(twiss0, k, x[i])
+            # If it's a tuple then we assume they're all quads and have the same strengths.
             if isinstance(vars[i], tuple):
-            # all quads strength in tuple varied simultaneously
+            # all quads strength in tuple varied simultaneously, having the same strength
                 for v in vars[i]:
                     v.k1 = x[i]
+            # Here it's a scaling factor of some initial value that allows us to consider
+            # quads that change together, but not necessarily equally.  this would be
+            # for example quads with same power supply but one is rotated w.r.t the other.
             if isinstance(vars[i], dict):
             # all quads strength in dict keys varied simultaneously
             # with coupling parameters given as values.
                 for q in vars[i].keys():
                     q.k1 = vars[i][q] * x[i]
 
+        # Start with zero cost
         err = 0.0
         # save reference points where equality is asked
 
+        # Loop over the contraints.  This loop is basically looking for special forms featuring
+        # "->" and does nothing if none are present.
         ref_hsh = {}  # penalties on two-point inequalities
-        for e in constr.keys():
-            if e == 'total_len':
+        for name in constr:
+            if name == 'total_len':
                 continue
-            for k in constr[e].keys():
-                if isinstance(constr[e][k], list):
-                    if constr[e][k][0] == '->':
+            for k in constr[name].keys(): # Loop over the constraint.
+                if isinstance(constr[name][k], list): # if
+                    if constr[name][k][0] == '->':
                         # print 'creating reference to', constr[e][k][1].id
-                        ref_hsh[constr[e][k][1]] = {k: 0.0}
+                        ref_hsh[constr[name][k][1]] = {k: 0.0}
         # evaluating global and point penalties
 
-        tw_loc.s = 0
+        # Reset twiss0.s.  This matters for later comparing totalLen cost.
+        twiss0.s = 0
 
         for e in lat.sequence:
             for tm in e.first_order_tms:
-                tw_loc = tm * tw_loc  # apply transfer map
+                twiss0 = tm * twiss0  # apply transfer map to twiss instance
+
+                # Now having steppe forward once in the transfer amps, we apply the constraints.
 
                 # --- Global constraints ---
                 if 'global' in constr:
                     for c, rule in constr['global'].items():
                         if isinstance(rule, list):
                             op, v1 = rule[0], rule[1]
-                            val = getattr(tw_loc, c)
+                            val = getattr(twiss0, c)
 
                             if op == '<' and val > v1:
                                 err += weights(c) * (val - v1) ** 2
@@ -159,18 +169,21 @@ def match_twiss(lat,
                                 err += weights(c) * (val - v1) ** 2
 
                 # --- Delta constraint update ---
+                # Record some optics function(s) at this point if we want to later consider
+                # how much they differ between a later or earlier element.
                 if 'delta' in constr and e in constr['delta']:
                     tw_k = constr['delta'][e][0]
-                    constr['delta'][e][1] = getattr(tw_loc, tw_k)
+                    constr['delta'][e][1] = getattr(twiss0, tw_k)
 
+                # Possibly record the twiss at this point as well if there 
                 # --- Update reference hash if needed ---
                 if e in ref_hsh:
-                    ref_hsh[e] = deepcopy(tw_loc)
+                    ref_hsh[e] = deepcopy(twiss0)
 
                 # --- Local constraints ---
                 if e in constr:
                     for k, rule in constr[e].items():
-                        val = getattr(tw_loc, k)
+                        val = getattr(twiss0, k)
 
                         if isinstance(rule, list):
                             op = rule[0]
@@ -204,9 +217,11 @@ def match_twiss(lat,
                             # direct comparison
                             ref_val = rule
                             err += weights(k) * (ref_val - val) ** 2
+
+        # Accumulate a possible lattice length constraint
         if "total_len" in constr.keys():
             total_len = constr["total_len"]
-            err = err + weights('total_len') * (tw_loc.s - total_len) ** 2
+            err = err + weights('total_len') * (twiss0.s - total_len) ** 2
 
         if 'delta' in constr.keys():
             delta_dict = constr['delta']
@@ -220,17 +235,18 @@ def match_twiss(lat,
 
         if verbose:
             print('iteration error:', x, err)
+        # End of error function definition errf
         return err
-
 
     # list of arguments determined based on the variable class
 
+    # Initialising the list of initial guesses.
     x = [0.0] * len(vars)
     for i in range(len(vars)):
         if isinstance(vars[i], list):
             if isinstance(vars[i][0], Twiss) and isinstance(vars[i][1], str):
                 k = vars[i][1]
-                x[i] = getattr(tw, k)
+                x[i] = getattr(twiss0, k)
                 # if k in ['beta_x', 'beta_y']:
                 #     x[i] = 10
                 # else:
@@ -261,8 +277,11 @@ def match_twiss(lat,
         if isinstance(vars[i], list):
             if isinstance(vars[i][0], Twiss) and isinstance(vars[i][1], str):
                 k = vars[i][1]
-                setattr(tw, k, res[i])
+                setattr(twiss0, k, res[i])
 
     # update MagneticLattice total length in case a Drift length was in list of variables
 
     return res
+
+def vary_twiss0(mlat, constr, vars):
+    pass
