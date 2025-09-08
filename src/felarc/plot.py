@@ -12,7 +12,8 @@ from .analysis import get_curvature
 
 
 def plot_optics(
-    tws0: Twiss, mlat: MagneticLattice
+        mlat: MagneticLattice,
+        tws0: Twiss | None = None, 
 ) -> tuple[Figure, list[Axes]]:
     llat = lattice_from_ocelot(mlat)
     df = twiss(mlat, tws0, return_df=True, nPoints=10000)
@@ -22,20 +23,21 @@ def plot_optics(
 
     ax0.plot(df.s, df.beta_x, label="$x$") # type: ignore
     ax0.plot(df.s, df.beta_y, label="$y$") # type: ignore
-    ax1.plot(df.s, df.Dx)  # type: ignore
-    ax2.plot(df.s, df.Dxp) # type: ignore
+    ax1.plot(df.s, df.mux / np.pi) # type: ignore
+    ax1.plot(df.s, df.muy / np.pi) # type: ignore
+    ax2.plot(df.s, df.Dx)  # type: ignore
 
     ax0.legend()
 
     ax0.set_ylabel(r"$\beta$ / m")
-    ax1.set_ylabel("$D$ / m")
-    ax2.set_ylabel("$D'$ / rad")
+    ax1.set_ylabel(r"$\mu\,/\,\pi$")
+    ax2.set_ylabel("$D_x$ / m")
     ax2.set_xlabel("$s$ / m")
 
     return fig, ax
 
 
-def plot_r56_full(tws0: Twiss, mlat: MagneticLattice):
+def plot_r56_full(mlat: MagneticLattice, tws0: Twiss | None = None):
     df = twiss(mlat, tws0, return_df=True, nPoints=10000)
     s = df.s  # type: ignore
     dx = df.Dx  # type: ignore
@@ -61,3 +63,4 @@ def plot_r56_full(tws0: Twiss, mlat: MagneticLattice):
     ax4.legend(ncol=2)
 
     return fig, ax
+

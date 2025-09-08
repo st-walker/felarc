@@ -26,7 +26,7 @@ def get_length(seq) -> float:
     return angle
 
 
-def describe_arc_optics(tws0: Twiss, mlat: MagneticLattice) -> str:
+def describe_arc_optics(mlat: MagneticLattice, tws0: Twiss | None = None) -> str:
     df = twiss(mlat, tws0, return_df=True) # type: ignore
     _, Rs, Ts, s = mlat.transfer_maps(energy=14, output_at_each_step=True) # type: ignore
 
@@ -50,11 +50,19 @@ def describe_arc_optics(tws0: Twiss, mlat: MagneticLattice) -> str:
     dy = [["Dy", df0.Dy, df1.Dy, f"{min(df.Dy):.3g}", f"{max(df.Dy):.3g}"],
           ["Dy'", df0.Dyp, df1.Dyp, f"{min(df.Dyp):.3g}", f"{max(df.Dyp):.3g}"]]
 
+    bend_stops = df[df.id.str.startswith("stop_bend")]
+    bend_starts = df[df.id.str.startswith("start_bend")]
+
+    
+    for i, (mu_end_bend, mu_start_next_bend) in enumerate(zip(bend_stops.mux, bend_starts.mux[1:]), start=1):
+        print(f"Bend Pair {i} phase advance end to start: {(mu_start_next_bend - mu_end_bend) / np.pi:.3g} 𝜋")
+
     optics_data.extend(dy)
 
-    optics_table = tabulate.tabulate(optics_data, headers=optics_header, tablefmt="html")
+    optics_table = tabulate.tabulate(optics_data, headers=optics_header #, tablefmt="html"
+                                     )
     return optics_table
-    
+
 
 def describe_arc_geometry(sequence) -> str:
     try:
@@ -91,7 +99,7 @@ def get_curvature(sequence, s_sample):
             angle = element.angle
         except AttributeError:
             continue
-            
+
         mask = (s_sample >= s_min) & (s_sample < s_max)
         curvature[mask] = angle / length
         s_accumulated = s_max
