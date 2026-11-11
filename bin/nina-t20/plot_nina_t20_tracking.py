@@ -42,6 +42,7 @@ def main() -> None:
         legend_beam1="Start of TL20",
         legend_beam2="End of T20",
         title=f"Standard T20, {charge} pC, without CSR",
+        nfig=1,  # compare_beams draws on figure 40 by default, so give each its own
     )
     plt.gcf().savefig(args.dir / f"nina-t20-{charge}pC-start-vs-end-nocsr.png", dpi=200)
 
@@ -54,6 +55,7 @@ def main() -> None:
             legend_beam1="With CSR",
             legend_beam2="Without CSR",
             title=f"Standard T20, {charge} pC, end of T20 with/without CSR",
+            nfig=2,
         )
         plt.gcf().savefig(args.dir / f"nina-t20-{charge}pC-csr-vs-nocsr.png", dpi=200)
     else:
