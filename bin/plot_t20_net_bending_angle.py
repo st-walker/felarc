@@ -1,18 +1,21 @@
 """Net bending angle along the TL20 + T20 arc.
 
 Companion to plot_t20_optics_with_dy.py: same lattice, same machine panel, same absolute s
-(measured from the cathode, 2034.59 m to 2123.33 m), but instead of the optics it shows the
-cumulative bending angle.
+(measured from the cathode, 2034.59 m to 2123.33 m), but instead of the optics it shows
+bending angles, in degrees.
 
 Each bend's angle is split into a horizontal part, angle * cos(tilt), and a vertical part,
-angle * sin(tilt), and these are summed along the beamline.  This handles the vertical
-bends (tilt = pi/2), the rolled BZ.2055.T20 and the sliced QK combined-function quad.  Within
-a magnet the angle grows linearly with path length.  Summing the components linearly ignores
-the non-commutativity of rotations, which is a second-order effect (~theta^2, i.e. ~1e-5 of
-the angles here) and invisible at mrad scale.
+angle * sin(tilt).  This handles the vertical bends (tilt = pi/2), the rolled BZ.2055.T20
+and the sliced QK combined-function quad.
 
-The bottom panel is the total angle the beam has been bent through, the running sum of
-|angle|, which is what matters for ISR and CSR, as opposed to the net direction change.
+Top panel: the net (cumulative) angle, summed along the beamline.  Within a magnet it grows
+linearly with path length.  Summing the components linearly ignores the non-commutativity
+of rotations, which is a second-order effect (~theta^2, i.e. ~1e-5 of the angles here).
+
+Bottom panel: the bend angle of each individual element, drawn as a step across the
+element's length; drifts, quads, markers etc. are 0.  Note the QK quad is modelled as 200
+thin slices, so each slice's angle is tiny and it barely shows here even though it is
+visible as a ramp in the top panel.
 """
 
 import sys
@@ -29,54 +32,57 @@ sys.path.append(str(Path(__file__).resolve().parent))
 from plot_t20_optics_with_dy import make_lattice  # noqa: E402
 
 
-def net_bending_angles(
+def element_bending_angles(
     mlat: MagneticLattice, s0: float = 0.0
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Cumulative horizontal, vertical and total |angle| (rad) at element boundaries.
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Per-element horizontal and vertical bend angles (rad).
 
-    Returns (s, theta_x, theta_y, theta_total), each sampled at the entrance and exit of
-    every element, so a straight-line plot between points is exact.
+    Returns (s, angle_x, angle_y) where s has one more entry than the angle arrays: element
+    i spans s[i] to s[i + 1] and bends by angle_x[i], angle_y[i].
     """
     s = [s0]
-    theta_x = [0.0]
-    theta_y = [0.0]
-    theta_total = [0.0]
+    angle_x = []
+    angle_y = []
 
     for element in mlat.sequence:
-        length = element.l
         angle = getattr(element, "angle", 0.0) or 0.0
         tilt = getattr(element, "tilt", 0.0) or 0.0
 
-        s.append(s[-1] + length)
-        theta_x.append(theta_x[-1] + angle * np.cos(tilt))
-        theta_y.append(theta_y[-1] + angle * np.sin(tilt))
-        theta_total.append(theta_total[-1] + abs(angle))
+        s.append(s[-1] + element.l)
+        angle_x.append(angle * np.cos(tilt))
+        angle_y.append(angle * np.sin(tilt))
 
-    return np.array(s), np.array(theta_x), np.array(theta_y), np.array(theta_total)
+    return np.array(s), np.array(angle_x), np.array(angle_y)
 
 
 def plot_net_bending_angle(mlat: MagneticLattice, s_offset: float = 0.0):
     llat = from_ocelot(mlat)
-    s, theta_x, theta_y, theta_total = net_bending_angles(mlat, s0=s_offset)
+    s, angle_x, angle_y = element_bending_angles(mlat, s0=s_offset)
+
+    # Net angle at every element boundary; linear within an element, so exact.
+    theta_x = np.concatenate([[0.0], np.cumsum(angle_x)])
+    theta_y = np.concatenate([[0.0], np.cumsum(angle_y)])
 
     fig, ax = subplots_with_lattices([llat, None, None], s_offset=s_offset)
     (_, ax0, ax1) = ax
 
-    ax0.plot(s, theta_x * 1e3, label="$x$")
-    ax0.plot(s, theta_y * 1e3, label="$y$")
+    ax0.plot(s, np.degrees(theta_x), label="$x$")
+    ax0.plot(s, np.degrees(theta_y), label="$y$")
     ax0.axhline(0, alpha=0.2, linestyle="--", color="gray")
 
-    ax1.plot(s, theta_total * 1e3, color="black")
+    # Constant value across each element: ax.stairs takes the n + 1 edges directly.
+    ax1.stairs(np.degrees(angle_x), s, baseline=None)
+    ax1.stairs(np.degrees(angle_y), s, baseline=None)
+    ax1.axhline(0, alpha=0.2, linestyle="--", color="gray")
 
     ax0.legend()
 
-    ax0.set_ylabel(r"$\theta_\mathrm{net}$ / mrad")
-    ax1.set_ylabel(r"$\sum|\theta|$ / mrad")
+    ax0.set_ylabel(r"$\theta_\mathrm{net}$ / °")
+    ax1.set_ylabel(r"$\theta_\mathrm{element}$ / °")
     ax1.set_xlabel(r"$s$ from cathode / m")
 
-    print(f"Net horizontal angle: {theta_x[-1] * 1e3: .4f} mrad")
-    print(f"Net vertical angle:   {theta_y[-1] * 1e3: .4f} mrad")
-    print(f"Total |angle|:        {theta_total[-1] * 1e3: .4f} mrad")
+    print(f"Net horizontal angle: {np.degrees(theta_x[-1]): .4f}°")
+    print(f"Net vertical angle:   {np.degrees(theta_y[-1]): .4f}°")
 
     return fig, ax
 
