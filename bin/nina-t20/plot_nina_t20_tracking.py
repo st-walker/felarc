@@ -4,9 +4,10 @@ Same approach as ../plot_isochronous_t20.py, using ocelot's compare_beams on the
 written by track_nina_t20.py:
 
 1. start of TL20 vs end of T20, tracked without CSR;
-2. end of T20 with CSR vs without CSR.
+2. start of TL20 vs end of T20, tracked with CSR;
+3. end of T20 with CSR vs without CSR.
 
-The second comparison is skipped if the CSR run has not been done yet.  Each figure is also
+The CSR comparisons are skipped if the CSR run has not been done yet.  Each figure is also
 saved next to the beams.
 
 Usage:
@@ -49,6 +50,16 @@ def main() -> None:
     csr_file = Path(f"{csr}-parray1.npz")
     if csr_file.exists():
         parray1_csr = load_particle_array(str(csr_file))
+        compare_beams(
+            parray0,
+            parray1_csr,
+            legend_beam1="Start of TL20",
+            legend_beam2="End of T20",
+            title=f"Standard T20, {charge} pC, with CSR",
+            nfig=3,
+        )
+        plt.gcf().savefig(args.dir / f"nina-t20-{charge}pC-start-vs-end-csr.png", dpi=200)
+
         compare_beams(
             parray1_csr,
             parray1_no_csr,
