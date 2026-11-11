@@ -12,7 +12,6 @@ whose file is missing are skipped, so this also works while the CSR run is still
 
 Usage:
     python plot_nina_t20_tracking.py --charge 250
-    python plot_nina_t20_tracking.py --charge 250 --nth 100   # the quick, thinned runs
 """
 
 import argparse
@@ -33,12 +32,11 @@ def projected_emittance(u: np.ndarray, up: np.ndarray, gamma: float) -> float:
     return gamma * np.sqrt(np.linalg.det(cov))
 
 
-def load_rows(directory: Path, charge: int, nth: int):
-    thinned = f"-nth{nth}" if nth > 1 else ""
+def load_rows(directory: Path, charge: int):
     candidates = [
-        ("input (start of TL20)", f"nina-t20-nocsr-{charge}pC{thinned}-parray0.npz"),
-        ("end of T20, no CSR", f"nina-t20-nocsr-{charge}pC{thinned}-parray1.npz"),
-        ("end of T20, with CSR", f"nina-t20-csr-{charge}pC{thinned}-parray1.npz"),
+        ("input (start of TL20)", f"nina-t20-nocsr-{charge}pC-parray0.npz"),
+        ("end of T20, no CSR", f"nina-t20-nocsr-{charge}pC-parray1.npz"),
+        ("end of T20, with CSR", f"nina-t20-csr-{charge}pC-parray1.npz"),
     ]
     rows = []
     for label, name in candidates:
@@ -99,18 +97,16 @@ def plot_phase_spaces(rows, charge: int, bins: int = 200):
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--charge", type=int, choices=(100, 250), default=250)
-    parser.add_argument("--nth", type=int, default=1)
     parser.add_argument("--dir", type=Path, default=HERE, help="where the .npz beams are")
     args = parser.parse_args()
 
-    rows = load_rows(args.dir, args.charge, args.nth)
+    rows = load_rows(args.dir, args.charge)
     if not rows:
         raise SystemExit("No tracked beams found; run track_nina_t20.py first.")
     fig, _ = plot_phase_spaces(rows, args.charge)
 
-    thinned = f"-nth{args.nth}" if args.nth > 1 else ""
     for suffix in ("png", "pdf"):
-        fig.savefig(args.dir / f"nina-t20-tracking-{args.charge}pC{thinned}.{suffix}", dpi=200)
+        fig.savefig(args.dir / f"nina-t20-tracking-{args.charge}pC.{suffix}", dpi=200)
 
     plt.show()
 
