@@ -9,11 +9,13 @@ from felarc.plot import (plot_csr_dispersion, plot_m11_m21_tba_contours,
 from felarc.tba import MagneticSequence  # , FirstOrderTBAParameters
 from felarc.tba import (FirstOrderTBAParameters, SecondOrderTBAParameters,
                         check_achromat_condition, match_achromatic_condition)
-from felarc.tracking import (load_test_parray, make_pencil_beam,
+from felarc.tracking import (load_test_parray, make_pencil_beam, make_gaussian_beam, track_with_parray,
                              track_with_test_beam)
 from ocelot.cpbd.magnetic_lattice import MagneticLattice
 from ocelot.cpbd.optics import twiss
 from ocelot.gui.accelerator import compare_beams, show_e_beam
+from felarc.plot import plot_optimisation_history
+from ocelot.cpbd.optics import Twiss
 
 
 def main():
@@ -89,40 +91,123 @@ def main():
 
     tbad = tbad.to_first_order()
 
+    # from IPython import embed; embed()
+
     tba = tbad.make_tba()
     # tba = make_tba(tbad)
     # plot_tba_periodic_beta0(tba)
 
     # print(describe_arc_geometry(tba))
 
-    opt = match_achromatic_condition(tba, k1_quads=tba.quads, position_quads=[tba.quads[0]])
+    # opt = match_achromatic_condition(tba, k1_quads=tba.quads, position_quads=[tba.quads[0]])
 
-    tba.update_quads(opt)
-
-
+    # tba.update_quads(opt)
 
     # from IPython import embed; embed()
 
     opt = match_achromatic_condition(tba,
                                      k1_quads=tba.quads,
+                                     # position_quads=tba.quads[:1],
+                                     match_isochronous=False,
+                                     # pathological_solution=True
+                                     # cancel_csr=True
+                                     )
+
+
+    # from IPython import embed; embed()
+
+    tba.update_quads(opt)
+    opt = match_achromatic_condition(tba,
+                                     k1_quads=tba.quads,
                                      position_quads=tba.quads[:1],
                                      match_isochronous=True,
+                                     # match_m11_m21=(-0.757, 0.1),
+                                     stable_solution=True,
+                                     # weights={"xtrace": 10, "ytrace": 10},
+                                     # pathological_solution=True
+                                     # pathological_solution=True
+                                     # cancel_csr=True
                                      )
 
     tba.update_quads(opt)
 
-    plot_m11_m21_tba_contours(tba, m11_range=(-2, 2), m21_range=(-2, 2), opt=opt)
+
+    # opt = match_achromatic_condition(tba,
+    #                                  k1_quads=tba.quads,
+    #                                  position_quads=tba.quads[:2],
+    #                                  match_isochronous=True,
+    #                                  # match_m11_m21=(-0.757, 0.1t),
+    #                                  stable_solution=True,
+    #                                  pathological_solution=True,
+    #                                  # pathological_solution=True
+    #                                  cancel_csr=True
+    #                                  ); tba.update_quads(opt)
+
+
+
+
+
+    # breakpoint()
+    # 5 knobs: 3 quads, 2 quad positions
+    # 5 constraints: 3 conditions on matrix elements (4th is taken care of by symplecticity)
+    #                2 conditions on traces
+
+    # opt = match_achromatic_condition(tba,
+    #                                  k1_quads=tba.quads,
+    #                                  position_quads=tba.quads[:3],
+    #                                  # match_isochronous=True,
+    #                                  # cancel_csr=True,
+    #                                  # pathological_solution=True,
+    #                                  weights={"r56": 1000},
+    #                                  match_m11_m21=(-0.757, 0.05)
+    #                                  )
+
+    # from IPython import embed; embed()
+
+    
+    # tba.update_quads(opt)
+
+    # from IPython import embed; embed()
+    print(describe_arc_geometry(tba))
+    print(describe_arc_optics(tba.mlat)) 
+
+
+
+    increase = 4
+    plt.rcParams.update({
+        "axes.labelsize": 16 + increase,   # axis labels
+        "xtick.labelsize": 14 + increase,  # x tick numbers
+        "ytick.labelsize": 14 + increase,  # y tick numbers
+        "legend.fontsize": 14 + 1 * increase,  # legend
+    })
+
+    plot_m11_m21_tba_contours(tba, m11_range=(-2.25, 0.5), m21_range=(-1.5, 10.5), opt=opt)
+    # plot_m11_m21_tba_contours(tba, m11_range=(-2, 2), m21_range=(-2, 2.5), opt=opt)
+    # breakpoint()
+    # from IPython import embed; embed()
+
+    plot_optics(tba.mlat# , twiss0=Twiss(alpha_x=0.5, beta_x=0.5, alpha_y=0.5, beta_y=0.5)
+                )
+    plot_csr_dispersion(tba.mlat)
+
+    from felarc.plot import plot_optics_with_dispersions
+    plot_optics_with_dispersions(tba.mlat)
+
     plt.show()
+    # from IPython importT embed; embed()
 
-    # plot_optics(tba.mlat)
+    # import sys
+    # sys.exit(0)
 
-    # plt.show()
-
-    parray0 = make_pencil_beam(n=500_000, twiss0=tba.twiss0())
-    parray0 = load_test_parray(tba.twiss0(), charge=100)
+    from IPython import embed; embed()
+    # par
+    # parray0 = make_pencil_beam(n=500_000, twiss0=tba.twiss0())
+    parray0 = make_gaussian_beam(tba.twiss0(), charge=100, n=200_000)
+    # parray0 = load_test_parray(tba.twiss0(), charge=100)
     show_e_beam(parray0)
     plt.show()
-    parray1 = track_with_test_beam(tba, tba.twiss0(), csr=True, isr=True, charge=100, rectangle=False)
+    parray1 = track_with_parray(tba, parray0, csr=True)
+    # parray1 = track_with_test_beam(tba, tba.twiss0(), csr=True, isr=False, charge=100, rectangle=False)
     show_e_beam(parray1)
     plt.show()
     compare_beams(parray0, parray1, legend_beam1="Start", legend_beam2="End")
@@ -237,10 +322,8 @@ def main():
     #      [((1, 0), 12/dipole_length), ((0, 0), -1),  ((1, 1), -1)]
     #     )
 
+    # from IPython import embed; embed()
 
-    from IPython import embed; embed()
-
-    plot_csr_dispersion(tba.mlat)
     plot_optics(tba.mlat)
     plt.show()
 
@@ -249,8 +332,8 @@ def main():
 
     # print(twisses[0]) # type: ignore
 
-    print(describe_arc_geometry(tba.mlat))
-    print(describe_arc_optics(tba.mlat)) 
+    from IPython import embed; embed()
+
     # plot_r56_full(mlat)
     # plot_optics(mlat)
     plt.show()

@@ -1,0 +1,6 @@
+best so far:
+
+all 3 quad positions
+no weights set
+first match isochronous, then try to match csr.
+i tried to match m_22 as well, i didn't just assume it would take care of itself.
