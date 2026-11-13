@@ -226,3 +226,7 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/emacs,python
 
 .envrc
+# Archive tidy-up
+*.npz
+.claude/
+.aider*
