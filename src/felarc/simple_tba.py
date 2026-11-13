@@ -20,8 +20,6 @@ class TBADefinition:
     k11: float
     k12: float
 
-    # def to_mlat(self) -> MagneticLattice
-
 @dataclass
 class TBAComponents:
     d1: Drift

@@ -3,12 +3,13 @@ name = "felarc"
 version = "0.2.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
-    "latdraw>=0.1.1a3",
+    "astropy>=7.1.0",
+    "latdraw>=0.2.0",
     "matplotlib>=3.10.3",
     "ocelot-desy>=25.6.0",
-    "sympy>=1.14.0",
+    "rich>=15.0.0",
     "tabulate>=0.9.0",
 ]
 
@@ -25,6 +26,10 @@ exclude = [
     "uv.lock",
     ".gitignore"
 ]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/felarc"]
 
 
 [dependency-groups]

@@ -1,12 +1,14 @@
 
-
-
 from copy import deepcopy
 
+import numpy as np
+from ocelot import MagneticLattice
 from ocelot.cpbd.beam import Twiss
 from ocelot.cpbd.beam_params import radiation_integrals
-from ocelot.cpbd.elements import (Bend, Drift, Quadrupole, RBend, SBend, Solenoid)
+from ocelot.cpbd.elements import (Bend, Drift, Quadrupole, RBend, SBend,
+                                  Solenoid)
 from ocelot.cpbd.elements.optic_element import OpticElement
+from ocelot.cpbd.optics import twiss
 from scipy.optimize import fmin, fmin_bfgs, fmin_cg
 
 
@@ -285,3 +287,72 @@ def match_twiss(lat,
 
 def vary_twiss0(mlat, constr, vars):
     pass
+
+
+def match_matrix_element(mlat: MagneticLattice, quadrupoles, indices):
+    def error_function(k1s):
+        cost = 0
+        # Set the Quadrupole K1 values.
+        print(k1s)
+        for quadrupole, k1 in zip(quadrupoles, k1s):
+            quadrupole.k1 = k1
+
+        _, Rs, _, _ = mlat.transfer_maps(energy=14, output_at_each_step=True) # type: ignore
+        for indice_pair, target in indices:
+            irow, icol = indice_pair
+            cost_factor = 1
+            # if irow == 4:
+            #     cost_factor = 10
+            print(f"R{irow+1}{icol+1} = {Rs[-1][irow, icol]:.3g}, {cost_factor}")
+            print(Rs[-1][0:2, 0:2])
+            print(Rs[-1][2:4, 2:4])
+            cost += (Rs[-1][irow, icol] - target)**2 * cost_factor
+
+        # from IPython import embed; embed()
+
+        # abs_ytrace = abs(np.trace(Rs[-1][2:4, 2:4]))
+
+        # if  abs_ytrace >= 2:
+        #     cost += (abs_ytrace - 2) ** 2
+
+
+        return cost
+
+    initial_guess = [q.k1 for q in quadrupoles]
+
+    res = fmin(error_function,
+               initial_guess,
+               xtol=1e-5,
+               maxiter=1000,
+               maxfun=1000)
+
+    return res
+
+
+def close_dispersions(mlat, quadrupoles, twiss0: Twiss):
+    def error_function(k1s):
+        # Set the Quadrupole K1 values.
+        for quadrupole, k1 in zip(quadrupoles, k1s):
+            quadrupole.k1 = k1
+
+        twisses: list[Twiss] = twiss(mlat, tws0=twiss0) # type: ignore
+        end_twiss = twisses[-1]
+        cost = np.sqrt(end_twiss.Dx**2
+                       + end_twiss.Dxp**2
+                       # + end_twiss.Dy**2
+                       # + end_twiss.Dyp**2
+                       )
+        # print(end_twiss.Dx, end_twiss.Dxp, end_twiss.Dy, end_twiss.Dyp)
+        print(cost)
+        return cost
+        
+
+    initial_guess = [q.k1 for q in quadrupoles]
+    res = fmin(error_function,
+               initial_guess,
+               xtol=1e-5,
+               maxiter=1000,
+               maxfun=10000)
+
+    return res
+
